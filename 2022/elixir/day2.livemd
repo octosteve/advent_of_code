@@ -1,0 +1,163 @@
+# Day 2
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.7.0"}
+])
+```
+
+## Section
+
+```elixir
+sample = Kino.Input.textarea("sample-data")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule Move do
+  defstruct [:choice, :value, :raw]
+
+  def new("A" = raw), do: struct!(__MODULE__, choice: :rock, value: 1, raw: raw)
+  def new("B" = raw), do: struct!(__MODULE__, choice: :paper, value: 2, raw: raw)
+  def new("C" = raw), do: struct!(__MODULE__, choice: :scissors, value: 3, raw: raw)
+  def new("X" = raw), do: struct!(__MODULE__, choice: :rock, value: 1, raw: raw)
+  def new("Y" = raw), do: struct!(__MODULE__, choice: :paper, value: 2, raw: raw)
+  def new("Z" = raw), do: struct!(__MODULE__, choice: :scissors, value: 3, raw: raw)
+end
+
+defmodule Round do
+  defstruct [:your_move, :elf_move]
+
+  def new(round_string) do
+    [elf_move, your_move] = round_string |> String.split(" ", trim: true)
+    struct!(__MODULE__, your_move: Move.new(your_move), elf_move: Move.new(elf_move))
+  end
+end
+
+defmodule Rules do
+  defstruct [:round, :result, :points]
+  @win_points 6
+  @lose_points 0
+  @draw_points 3
+
+  def evaluate(%{your_move: %{choice: your_move}, elf_move: %{choice: elf_move}} = round)
+      when your_move == elf_move do
+    struct!(__MODULE__, round: round, result: :draw, points: @draw_points + round.your_move.value)
+  end
+
+  def evaluate(%{your_move: %{choice: :rock}, elf_move: %{choice: :scissors}} = round) do
+    struct!(__MODULE__, round: round, result: :win, points: @win_points + round.your_move.value)
+  end
+
+  def evaluate(%{your_move: %{choice: :paper}, elf_move: %{choice: :rock}} = round) do
+    struct!(__MODULE__, round: round, result: :win, points: @win_points + round.your_move.value)
+  end
+
+  def evaluate(%{your_move: %{choice: :scissors}, elf_move: %{choice: :paper}} = round) do
+    struct!(__MODULE__, round: round, result: :win, points: @win_points + round.your_move.value)
+  end
+
+  def evaluate(%{your_move: your_move} = round) do
+    struct!(__MODULE__, round: round, result: :lose, points: @lose_points + your_move.value)
+  end
+end
+
+defmodule Game do
+  defstruct rounds: [], rules: Rules, total_score: 0
+
+  def new(round_input, round \\ Round) do
+    round_input
+    |> String.split("\n")
+    |> Enum.map(&round.new/1)
+    |> evaluate_rounds(struct!(__MODULE__))
+  end
+
+  defp evaluate_rounds(rounds, struct) do
+    Enum.reduce(rounds, struct, fn round, struct ->
+      rule_result = struct.rules.evaluate(round)
+      score = rule_result.points
+
+      struct
+      |> Map.update(:rounds, [], fn rounds ->
+        [
+          round
+          |> Map.put(:result, rule_result.result)
+          |> Map.put(:score, score)
+          | rounds
+        ]
+      end)
+      |> Map.update(:total_score, 0, &(&1 + score))
+    end)
+  end
+end
+
+sample
+|> Kino.Input.read()
+|> Game.new()
+
+# |> then(&(&1.total_score))
+# |> String.split("\n")
+# |> Enum.map(&Round.new/1)
+# |> Enum.map(&Rules.evaluate/1)
+
+# |> Enum.map(fn %{points: points} -> points end)
+# |> Enum.sum
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule Move2 do
+  defstruct [:choice, :value]
+
+  def new("X", opponent_move) do
+    case Move.new(opponent_move) do
+      %{choice: :rock} -> scissors()
+      %{choice: :paper} -> rock()
+      %{choice: :scissors} -> paper()
+    end
+  end
+
+  def new("Y", opponent_move), do: Move.new(opponent_move)
+
+  def new("Z", opponent_move) do
+    case Move.new(opponent_move) do
+      %{choice: :rock} -> paper()
+      %{choice: :paper} -> scissors()
+      %{choice: :scissors} -> rock()
+    end
+  end
+
+  defp rock do
+    struct!(__MODULE__, choice: :rock, value: 1)
+  end
+
+  defp paper do
+    struct!(__MODULE__, choice: :paper, value: 2)
+  end
+
+  defp scissors do
+    struct!(__MODULE__, choice: :scissors, value: 3)
+  end
+end
+
+defmodule Round2 do
+  defstruct [:your_move, :elf_move, :raw]
+
+  def new(round_string) do
+    [elf_move, your_move] = round_string |> String.split(" ", trim: true)
+
+    struct!(__MODULE__,
+      your_move: Move2.new(your_move, elf_move),
+      elf_move: Move.new(elf_move),
+      raw: round_string
+    )
+  end
+end
+
+sample
+|> Kino.Input.read()
+|> Game.new(Round2)
+|> then(& &1.total_score)
+```
