@@ -1,0 +1,72 @@
+# Untitled notebook
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.7.0"}
+])
+```
+
+## Section
+
+```elixir
+input = Kino.Input.textarea("packs")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+lower_case = for x <- ?a..?z, do: <<x::utf8>>
+upper_case = for x <- ?A..?Z, do: <<x::utf8>>
+
+value_key =
+  (lower_case ++ upper_case)
+  |> Enum.zip(1..52)
+  |> Enum.into(%{})
+
+input
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.map(fn packs ->
+  pack_size = packs |> String.length() |> Kernel./(2) |> round
+  <<pack1::binary-size(pack_size), pack2::binary-size(pack_size)>> = packs
+  [pack1, pack2]
+end)
+|> Enum.map(fn [pack1, pack2] ->
+  pack1
+  |> String.split(~r//, trim: true)
+  |> Enum.reduce_while(:pending, fn item, _acc ->
+    if String.contains?(pack2, item), do: {:halt, item}, else: {:cont, :pending}
+  end)
+end)
+|> Enum.map(fn duplicate_item ->
+  value_key[duplicate_item]
+end)
+|> Enum.sum()
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.chunk_every(3)
+|> Enum.map(fn group ->
+  [elf1, elf2, elf3] =
+    group
+    |> Enum.sort_by(&String.length/1)
+
+  elf1
+  |> String.split(~r//, trim: true)
+  |> Enum.uniq()
+  |> Enum.reduce_while(:pending, fn item, _acc ->
+    if String.contains?(elf2, item) && String.contains?(elf3, item) do
+      {:halt, item}
+    else
+      {:cont, :pending}
+    end
+  end)
+end)
+|> Enum.map(fn duplicate_item ->
+  value_key[duplicate_item]
+end)
+|> Enum.sum()
+```
