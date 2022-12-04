@@ -1,0 +1,64 @@
+# Day 4
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.7.0"}
+])
+```
+
+## Section
+
+```elixir
+input = Kino.Input.textarea("sections")
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.count(fn sections ->
+  [
+    section1_lower_bounds,
+    section1_upper_bounds,
+    section2_lower_bounds,
+    section2_upper_bounds
+  ] =
+    Regex.scan(~r/(\d+)-(\d+),(\d+)-(\d+)/, sections, capture: :all_but_first)
+    |> List.flatten()
+    |> Enum.map(&String.to_integer/1)
+
+  [small_section, large_section] =
+    [
+      Range.new(section1_lower_bounds, section1_upper_bounds),
+      Range.new(section2_lower_bounds, section2_upper_bounds)
+    ]
+    |> Enum.sort_by(&Range.size/1)
+
+  Enum.member?(large_section, small_section.first) &&
+    Enum.member?(large_section, small_section.last)
+end)
+```
+
+```elixir
+input
+|> Kino.Input.read()
+|> String.split("\n", trim: true)
+|> Enum.count(fn sections ->
+  [
+    section1_lower_bounds,
+    section1_upper_bounds,
+    section2_lower_bounds,
+    section2_upper_bounds
+  ] =
+    Regex.scan(~r/(\d+)-(\d+),(\d+)-(\d+)/, sections, capture: :all_but_first)
+    |> List.flatten()
+    |> Enum.map(&String.to_integer/1)
+
+  section1 = Range.new(section1_lower_bounds, section1_upper_bounds)
+  section2 = Range.new(section2_lower_bounds, section2_upper_bounds)
+
+  section1 |> Range.disjoint?(section2) |> Kernel.not()
+end)
+```

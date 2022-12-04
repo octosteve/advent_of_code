@@ -1,4 +1,4 @@
-# Untitled notebook
+# Day 3
 
 ```elixir
 Mix.install([
