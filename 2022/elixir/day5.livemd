@@ -13,10 +13,6 @@ input = Kino.Input.textarea("cargo")
 ```
 
 ```elixir
-button = Kino.Control.button("next")
-```
-
-```elixir
 defmodule Instruction do
   defstruct [:source, :destination, :count, :raw_instruction]
 
@@ -119,8 +115,7 @@ instructions
 |> Enum.reduce(stacked_crates, fn %{
                                     source: source,
                                     destination: destination,
-                                    count: count,
-                                    raw_instruction: raw_instruction
+                                    count: count
                                   },
                                   crates ->
   {remaining, moving} = crates |> Map.get(source) |> Enum.split(count * -1)
