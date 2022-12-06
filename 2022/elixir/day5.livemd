@@ -1,0 +1,135 @@
+# Day 5
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.8.0"}
+])
+```
+
+## Section
+
+```elixir
+input = Kino.Input.textarea("cargo")
+```
+
+```elixir
+button = Kino.Control.button("next")
+```
+
+```elixir
+defmodule Instruction do
+  defstruct [:source, :destination, :count, :raw_instruction]
+
+  def new(instruction_text) do
+    [count, source, destination] =
+      Regex.scan(~r/.*move (\d+) from (\d+) to (\d)+.*/, instruction_text, capture: :all_but_first)
+      |> List.flatten()
+      |> Enum.map(&String.to_integer/1)
+
+    struct!(__MODULE__,
+      source: source,
+      destination: destination,
+      count: count,
+      raw_instruction: instruction_text
+    )
+  end
+end
+```
+
+```elixir
+
+```
+
+```elixir
+[stacks | cargo] =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n\n")
+  |> hd()
+  |> String.split("\n")
+  |> Enum.map(fn row ->
+    row
+    |> String.split(~r//, trim: true)
+    |> Enum.chunk_every(4)
+    |> Enum.map(&(Enum.join(&1) |> String.trim()))
+  end)
+  |> Enum.reverse()
+
+stacks =
+  stacks |> Enum.map(&String.to_integer/1) |> Enum.zip(Stream.cycle([[]])) |> Enum.into(%{})
+
+cargo =
+  cargo
+  |> Enum.map(fn crate ->
+    Enum.with_index(crate, fn element, index -> {index + 1, element} end) |> Enum.into(%{})
+  end)
+
+stacked_crates =
+  cargo
+  |> Enum.reduce(stacks, fn crate, stacks ->
+    stacks
+    |> Map.merge(crate, fn
+      _k, v1, "" ->
+        v1
+
+      _k, v1, v2 ->
+        v1 ++ [v2]
+    end)
+  end)
+
+# Just getting it in the right shape!
+# %{1 => ["[Z]", "[N]"], 2 => ["[M]", "[C]", "[D]"], 3 => ["[P]"]}
+```
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+stacked_crates |> Map.get(2) |> Enum.split(-1)
+
+instructions =
+  input
+  |> Kino.Input.read()
+  |> String.split("\n\n")
+  |> List.last()
+  |> String.split("\n")
+  |> Enum.map(&Instruction.new/1)
+
+instructions
+|> Enum.reduce(stacked_crates, fn %{
+                                    source: source,
+                                    destination: destination,
+                                    count: count
+                                  },
+                                  crates ->
+  {remaining, moving} = crates |> Map.get(source) |> Enum.split(count * -1)
+
+  moving = moving |> Enum.reverse()
+
+  crates
+  |> Map.put(source, remaining)
+  |> Map.update(destination, [], &(&1 ++ moving))
+end)
+|> Map.values()
+|> Enum.map(&List.last/1)
+|> Enum.map(fn <<"[", char::size(8), "]">> -> char end)
+```
+
+```elixir
+instructions
+|> Enum.reduce(stacked_crates, fn %{
+                                    source: source,
+                                    destination: destination,
+                                    count: count,
+                                    raw_instruction: raw_instruction
+                                  },
+                                  crates ->
+  {remaining, moving} = crates |> Map.get(source) |> Enum.split(count * -1)
+
+  crates
+  |> Map.put(source, remaining)
+  |> Map.update(destination, [], &(&1 ++ moving))
+end)
+|> Map.values()
+|> Enum.map(&List.last/1)
+|> Enum.map(fn <<"[", char::size(8), "]">> -> char end)
+```
